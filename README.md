@@ -1,6 +1,6 @@
 # graphql-wrapper
 
-Rest to Graph QL API wrapper for the CRUX History and PageSpeed Insights API
+A Graph QL API wrapper for the CRUX History and PageSpeed Insights API
 
 ## Get an API Key
 
