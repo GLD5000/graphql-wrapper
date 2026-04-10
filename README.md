@@ -2,8 +2,13 @@
 
 A Next.js GraphQL API wrapper around:
 
-- Chrome UX Report History API
-- PageSpeed Insights API
+Chrome UX Report History API
+PageSpeed Insights API
+
+## Documentation
+
+- [Technical Specification](technical-spec.md)
+- [Schema Summary](schema-summary.md)
 
 The endpoint lets clients ask for exactly the fields they need, and only the requested upstream API calls are made.
 
