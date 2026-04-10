@@ -14,7 +14,7 @@ The endpoint lets clients ask for exactly the fields they need, and only the req
 
 ## 1. Prerequisites
 
-1. Create a Google Cloud project.
+1. Create a [Google Cloud project](https://console.cloud.google.com/).
 2. Enable these APIs:
 
 - `Chrome UX Report API`
