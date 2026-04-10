@@ -82,10 +82,11 @@ query Combined($url: String!) {
 ## Future Improvements
 
 - Add authentication and rate limiting.
+- Add web hosting
 - Support additional metrics and data sources.
 - Add automated tests.
 - Provide a frontend UI for query exploration.
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+MIT See [LICENSE](LICENSE) for details.
