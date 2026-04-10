@@ -1,28 +1,196 @@
 # graphql-wrapper
 
-A Graph QL API wrapper for the CRUX History and PageSpeed Insights API
+A Next.js GraphQL API wrapper around:
 
-## Get an API Key
+- Chrome UX Report History API
+- PageSpeed Insights API
 
-Visit https://developers.google.com/speed/docs/insights/v5/get-started#APIKey or https://developer.chrome.com/docs/crux/history-api#crux_api_key and follow the instructions to get your own (free) API key.
+The endpoint lets clients ask for exactly the fields they need, and only the requested upstream API calls are made.
 
-- **N.B. You will need to enable [`Chrome UX Report API`](https://console.cloud.google.com/apis/api/chromeuxreport.googleapis.com/metrics?project=psi-crux-gld&supportedpurview=project) and [`PageSpeed Insights API`](https://console.cloud.google.com/apis/api/pagespeedonline.googleapis.com/metrics?project=psi-crux-gld&supportedpurview=project) in your GCC project**
+## 1. Prerequisites
 
-## Test your API Key
+1. Create a Google Cloud project.
+2. Enable these APIs:
 
-1. Add your API key to `.env.local` with key `GOOGLE_API_KEY`
-2. In terminal export environmental variables: `$ export $(grep -v '^#' .env.local | xargs)`
-3. Run curl command:
+- `Chrome UX Report API`
+- `PageSpeed Insights API`
 
+3. Create an API key.
+
+Reference docs:
+
+- https://developers.google.com/speed/docs/insights/v5/get-started#APIKey
+- https://developer.chrome.com/docs/crux/history-api#crux_api_key
+
+## 2. Configure environment
+
+Create or update `.env.local`:
+
+```bash
+GOOGLE_API_KEY=your_google_api_key_here
 ```
-curl "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=https://web.dev/&key=$GOOGLE_API_KEY"
+
+## 3. Install and run
+
+```bash
+npm install
+npm run dev
 ```
 
-```
-curl -s --request POST "https://chromeuxreport.googleapis.com/v1/records:queryHistoryRecord?key=$GOOGLE_API_KEY" \
-    --header 'Accept: application/json' \
-    --header 'Content-Type: application/json' \
-    --data '{"formFactor":"PHONE","origin":"https://www.example.com","metrics":["largest_contentful_paint", "experimental_time_to_first_byte"]}'
+GraphQL endpoint:
+
+`POST /api/graphql`
+
+## 4. Query examples
+
+### Query website insights lazily
+
+This requests only specific fields from both providers under one website node.
+
+```graphql
+query Website($url: String!) {
+  website(url: $url) {
+    inputUrl
+    origin
+    pagespeed(strategy: MOBILE, categories: [PERFORMANCE, SEO]) {
+      performanceScore
+      lcpMs
+      inpMs
+      cls
+      categoryScores {
+        id
+        score
+      }
+    }
+    crux(formFactor: PHONE) {
+      queriedOrigin
+      metrics {
+        metric
+        p75s
+      }
+    }
+  }
+}
 ```
 
-## Run a GraphQL query
+Variables:
+
+```json
+{
+  "url": "https://web.dev"
+}
+```
+
+cURL:
+
+```bash
+curl -X POST http://localhost:3000/api/graphql \
+    -H "Content-Type: application/json" \
+    -d '{
+        "query": "query Website($url: String!) { website(url: $url) { inputUrl origin pagespeed(strategy: MOBILE, categories: [PERFORMANCE, SEO]) { performanceScore lcpMs inpMs cls categoryScores { id score } } crux(formFactor: PHONE) { queriedOrigin metrics { metric p75s } } } }",
+        "variables": {
+            "url": "https://web.dev"
+        }
+    }'
+```
+
+### Query combined summary in one call
+
+```graphql
+query Combined($url: String!) {
+  combined(url: $url, strategy: MOBILE, formFactor: PHONE) {
+    summary {
+      origin
+      performanceScore
+      lcpDeltaMs
+      inpDeltaMs
+      clsDelta
+    }
+    pagespeed {
+      lcpMs
+      inpMs
+      cls
+    }
+    crux {
+      metrics {
+        metric
+        p75s
+      }
+    }
+  }
+}
+```
+
+cURL:
+
+```bash
+curl -X POST http://localhost:3000/api/graphql \
+    -H "Content-Type: application/json" \
+    -d '{
+        "query": "query Combined($url: String!) { combined(url: $url, strategy: MOBILE, formFactor: PHONE) { summary { origin performanceScore lcpDeltaMs inpDeltaMs clsDelta } pagespeed { lcpMs inpMs cls } crux { metrics { metric p75s } } } }",
+        "variables": {
+            "url": "https://web.dev"
+        }
+    }'
+```
+
+### Direct PageSpeed query
+
+```graphql
+query {
+  pagespeed(url: "https://example.com", strategy: DESKTOP) {
+    finalUrl
+    performanceScore
+    fcpMs
+    lcpMs
+  }
+}
+```
+
+cURL:
+
+```bash
+curl -X POST http://localhost:3000/api/graphql \
+    -H "Content-Type: application/json" \
+    -d '{
+        "query": "query { pagespeed(url: \"https://example.com\", strategy: DESKTOP) { finalUrl performanceScore fcpMs lcpMs } }"
+    }'
+```
+
+### Direct CrUX query
+
+```graphql
+query {
+  crux(origin: "https://example.com", formFactor: PHONE) {
+    collectionPeriods {
+      firstDate
+      lastDate
+    }
+    metrics {
+      metric
+      p75s
+      histogram {
+        start
+        end
+        densities
+      }
+    }
+  }
+}
+```
+
+cURL:
+
+```bash
+curl -X POST http://localhost:3000/api/graphql \
+    -H "Content-Type: application/json" \
+    -d '{
+        "query": "query { crux(origin: \"https://example.com\", formFactor: PHONE) { collectionPeriods { firstDate lastDate } metrics { metric p75s histogram { start end densities } } } }"
+    }'
+```
+
+## Notes
+
+- The API requires `GOOGLE_API_KEY` at runtime.
+- If an upstream Google API request fails, GraphQL returns the error in the `errors` array.
+- `rawJson` fields are available on both `PageSpeedResult` and `CruxHistoryResult` when full payload debugging is needed.
