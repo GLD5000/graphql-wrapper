@@ -9,84 +9,168 @@ const DEFAULT_CRUX_METRICS = [
 ];
 
 const schemaSource = `
+  """Device form factor used when querying CrUX data."""
   enum FormFactor {
+    """Mobile phone."""
     PHONE
+    """Desktop computer."""
     DESKTOP
+    """Tablet device."""
     TABLET
+    """Aggregate across all form factors."""
     ALL
   }
 
+  """Strategy used when running a PageSpeed Insights audit."""
   enum PsiStrategy {
+    """Simulate a mobile device."""
     MOBILE
+    """Simulate a desktop device."""
     DESKTOP
   }
 
+  """Lighthouse audit category to include in a PageSpeed Insights run."""
   enum PsiCategory {
+    """Core performance metrics and diagnostics."""
     PERFORMANCE
+    """Accessibility best practices."""
     ACCESSIBILITY
+    """Modern web best practices."""
     BEST_PRACTICES
+    """Search engine optimisation."""
     SEO
+    """Progressive Web App checks."""
     PWA
   }
 
+  """Date range covered by a single CrUX collection period."""
   type CollectionPeriod {
+    """First day of the collection period (JSON-encoded date object)."""
     firstDate: String
+    """Last day of the collection period (JSON-encoded date object)."""
     lastDate: String
   }
 
+  """A single bin in a CrUX metric histogram timeseries."""
   type HistogramBin {
+    """Lower bound of this bin in the metric's native unit."""
     start: Float
+    """Upper bound of this bin in the metric's native unit."""
     end: Float
+    """Fraction of sessions in this bin for each collection period."""
     densities: [Float!]!
   }
 
+  """Historical p75 and histogram data for a single CrUX metric."""
   type CruxMetricSeries {
+    """Metric name as returned by the CrUX API (e.g. largest_contentful_paint)."""
     metric: String!
+    """75th-percentile values across collection periods."""
     p75s: [Float]
+    """Histogram bins across collection periods."""
     histogram: [HistogramBin!]!
   }
 
+  """CrUX history response for an origin."""
   type CruxHistoryResult {
+    """Origin that was queried."""
     queriedOrigin: String!
+    """Form factor the data is segmented by."""
     formFactor: FormFactor!
+    """Ordered list of collection periods covered by this response."""
     collectionPeriods: [CollectionPeriod!]!
+    """Metric series included in this response."""
     metrics: [CruxMetricSeries!]!
+    """Raw JSON response from the CrUX API."""
     rawJson: String!
   }
 
+  """Lighthouse score for a single audit category."""
   type PageSpeedCategoryScore {
+    """Category identifier (e.g. performance, seo)."""
     id: String!
+    """Score between 0 and 1, or null if not available."""
     score: Float
+    """Human-readable category title."""
     title: String
   }
 
+  """PageSpeed Insights result for a URL."""
   type PageSpeedResult {
+    """URL that was originally requested."""
     requestedUrl: String!
+    """Final URL after redirects."""
     finalUrl: String
+    """Strategy used for the audit."""
     strategy: PsiStrategy!
+    """ISO 8601 timestamp of when the audit was fetched."""
     fetchTime: String
+    """Lighthouse version used for the audit."""
     lighthouseVersion: String
+    """Scores for each requested Lighthouse category."""
     categoryScores: [PageSpeedCategoryScore!]!
+    """Overall Lighthouse performance score (0-1)."""
     performanceScore: Float
+    """Largest Contentful Paint in milliseconds."""
     lcpMs: Float
+    """Interaction to Next Paint in milliseconds."""
     inpMs: Float
+    """Cumulative Layout Shift score."""
     cls: Float
+    """First Contentful Paint in milliseconds."""
     fcpMs: Float
+    """Time to First Byte in milliseconds."""
     ttfbMs: Float
+    """Raw JSON response from the PageSpeed Insights API."""
     rawJson: String!
   }
 
+  """Combined PageSpeed and CrUX insights scoped to a single website."""
   type WebsiteInsights {
+    """Original URL supplied by the caller."""
     inputUrl: String!
+    """Normalized origin derived from the input URL."""
     origin: String!
-    pagespeed(strategy: PsiStrategy = MOBILE, categories: [PsiCategory!]): PageSpeedResult!
-    crux(formFactor: FormFactor = PHONE, metrics: [String!]): CruxHistoryResult!
+    """PageSpeed Insights audit for this website."""
+    pagespeed(
+      """Audit strategy. Defaults to MOBILE."""
+      strategy: PsiStrategy = MOBILE
+      """Lighthouse categories to audit. Defaults to PERFORMANCE."""
+      categories: [PsiCategory!]
+    ): PageSpeedResult!
+    """CrUX history for this website's origin."""
+    crux(
+      """Form factor to segment data by. Defaults to PHONE."""
+      formFactor: FormFactor = PHONE
+      """Metrics to return. Defaults to LCP, INP, CLS, FCP, and TTFB."""
+      metrics: [String!]
+    ): CruxHistoryResult!
   }
 
   type Query {
-    website(url: String!): WebsiteInsights!
-    pagespeed(url: String!, strategy: PsiStrategy = MOBILE, categories: [PsiCategory!]): PageSpeedResult!
-    crux(origin: String!, formFactor: FormFactor = PHONE, metrics: [String!]): CruxHistoryResult!
+    """Fetch combined PageSpeed and CrUX insights for a URL."""
+    website(
+      """Full URL of the page to analyse."""
+      url: String!
+    ): WebsiteInsights!
+    """Run a PageSpeed Insights audit directly for a URL."""
+    pagespeed(
+      """Full URL of the page to audit."""
+      url: String!
+      """Audit strategy. Defaults to MOBILE."""
+      strategy: PsiStrategy = MOBILE
+      """Lighthouse categories to audit. Defaults to PERFORMANCE."""
+      categories: [PsiCategory!]
+    ): PageSpeedResult!
+    """Fetch CrUX history directly for an origin."""
+    crux(
+      """Origin or URL whose origin will be queried."""
+      origin: String!
+      """Form factor to segment data by. Defaults to PHONE."""
+      formFactor: FormFactor = PHONE
+      """Metrics to return. Defaults to LCP, INP, CLS, FCP, and TTFB."""
+      metrics: [String!]
+    ): CruxHistoryResult!
   }
 `;
 
