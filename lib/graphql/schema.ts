@@ -134,18 +134,7 @@ function parseOrigin(value: string): string {
  * @returns PageSpeed API category parameter.
  */
 function psiCategoryToParam(category: PsiCategory): string {
-  switch (category) {
-    case "PERFORMANCE":
-      return "performance";
-    case "ACCESSIBILITY":
-      return "accessibility";
-    case "BEST_PRACTICES":
-      return "best-practices";
-    case "SEO":
-      return "seo";
-    case "PWA":
-      return "pwa";
-  }
+  return category.toLowerCase().replaceAll("_", "-");
 }
 
 /**
@@ -166,22 +155,6 @@ function strategyToParam(strategy: PsiStrategy): string {
  */
 function safeNumber(value: unknown): number | null {
   return typeof value === "number" ? value : null;
-}
-
-/**
- * Finds the last numeric entry in an array.
- *
- * @param values Values to scan.
- * @returns Last numeric value, or null when none exist.
- */
-function lastNumber(values: unknown[]): number | null {
-  for (let i = values.length - 1; i >= 0; i -= 1) {
-    if (typeof values[i] === "number") {
-      return values[i] as number;
-    }
-  }
-
-  return null;
 }
 
 /**
