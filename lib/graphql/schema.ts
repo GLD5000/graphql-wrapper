@@ -240,8 +240,8 @@ function strategyToParam(strategy: PsiStrategy): string {
  * @param value Unknown input value.
  * @returns Number when the value is numeric, otherwise null.
  */
-function safeNumber(value: unknown): number | null {
-  return typeof value === "number" ? value : null;
+function safeNumber(value: unknown): number {
+  return typeof value === "number" ? value : Number(value);
 }
 
 /**
