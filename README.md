@@ -99,46 +99,6 @@ curl -X POST http://localhost:3000/api/graphql \
     }'
 ```
 
-### Query combined summary in one call
-
-```graphql
-query Combined($url: String!) {
-  combined(url: $url, strategy: MOBILE, formFactor: PHONE) {
-    summary {
-      origin
-      performanceScore
-      lcpDeltaMs
-      inpDeltaMs
-      clsDelta
-    }
-    pagespeed {
-      lcpMs
-      inpMs
-      cls
-    }
-    crux {
-      metrics {
-        metric
-        p75s
-      }
-    }
-  }
-}
-```
-
-cURL:
-
-```bash
-curl -X POST http://localhost:3000/api/graphql \
-    -H "Content-Type: application/json" \
-    -d '{
-        "query": "query Combined($url: String!) { combined(url: $url, strategy: MOBILE, formFactor: PHONE) { summary { origin performanceScore lcpDeltaMs inpDeltaMs clsDelta } pagespeed { lcpMs inpMs cls } crux { metrics { metric p75s } } } }",
-        "variables": {
-            "url": "https://web.dev"
-        }
-    }'
-```
-
 ### Direct PageSpeed query
 
 ```graphql
