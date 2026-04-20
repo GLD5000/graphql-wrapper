@@ -1,5 +1,8 @@
 import { buildSchema } from "graphql";
 
+/**
+ * Default Metrics for CRUX History calls
+ */
 const DEFAULT_CRUX_METRICS = [
   "largest_contentful_paint",
   "interaction_to_next_paint",
