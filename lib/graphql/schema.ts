@@ -129,6 +129,12 @@ type PsiCategory =
 type PsiStrategy = "MOBILE" | "DESKTOP";
 type FormFactor = "PHONE" | "DESKTOP" | "TABLET" | "ALL";
 
+/**
+ * Reads and validates the Google API key from environment variables.
+ *
+ * @returns The configured Google API key.
+ * @throws Error When GOOGLE_API_KEY is not configured.
+ */
 function requireApiKey(): string {
   const apiKey = process.env.GOOGLE_API_KEY;
 
@@ -139,11 +145,23 @@ function requireApiKey(): string {
   return apiKey;
 }
 
+/**
+ * Normalizes an input URL or host into an origin string.
+ *
+ * @param value Raw URL or hostname.
+ * @returns Normalized origin including protocol.
+ */
 function parseOrigin(value: string): string {
   const normalized = value.startsWith("http") ? value : `https://${value}`;
   return new URL(normalized).origin;
 }
 
+/**
+ * Maps GraphQL PSI category values to PageSpeed API category parameters.
+ *
+ * @param category PSI category enum value.
+ * @returns PageSpeed API category parameter.
+ */
 function psiCategoryToParam(category: PsiCategory): string {
   switch (category) {
     case "PERFORMANCE":
@@ -159,14 +177,32 @@ function psiCategoryToParam(category: PsiCategory): string {
   }
 }
 
+/**
+ * Converts GraphQL PSI strategy enum to the PageSpeed API strategy format.
+ *
+ * @param strategy Strategy enum value.
+ * @returns Lowercase strategy string.
+ */
 function strategyToParam(strategy: PsiStrategy): string {
   return strategy.toLowerCase();
 }
 
+/**
+ * Returns numeric values and normalizes non-numeric values to null.
+ *
+ * @param value Unknown input value.
+ * @returns Number when the value is numeric, otherwise null.
+ */
 function safeNumber(value: unknown): number | null {
   return typeof value === "number" ? value : null;
 }
 
+/**
+ * Finds the last numeric entry in an array.
+ *
+ * @param values Values to scan.
+ * @returns Last numeric value, or null when none exist.
+ */
 function lastNumber(values: unknown[]): number | null {
   for (let i = values.length - 1; i >= 0; i -= 1) {
     if (typeof values[i] === "number") {
@@ -177,6 +213,14 @@ function lastNumber(values: unknown[]): number | null {
   return null;
 }
 
+/**
+ * Fetches JSON and throws a detailed error for non-success responses.
+ *
+ * @param url Request URL.
+ * @param init Optional fetch options.
+ * @returns Parsed JSON payload.
+ * @throws Error When the response status is not OK.
+ */
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
 
@@ -188,6 +232,12 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+/**
+ * Queries PageSpeed Insights and maps relevant fields into API output.
+ *
+ * @param args PageSpeed query options.
+ * @returns Normalized PageSpeed result object.
+ */
 async function getPageSpeed(args: {
   url: string;
   strategy?: PsiStrategy;
@@ -244,6 +294,12 @@ async function getPageSpeed(args: {
   };
 }
 
+/**
+ * Queries CrUX history for an origin and maps metric series data.
+ *
+ * @param args CrUX history query options.
+ * @returns Normalized CrUX history result object.
+ */
 async function getCruxHistory(args: {
   origin: string;
   formFactor?: FormFactor;
@@ -317,6 +373,12 @@ async function getCruxHistory(args: {
   };
 }
 
+/**
+ * Runs combined PageSpeed and CrUX queries and derives summary deltas.
+ *
+ * @param args Combined query options.
+ * @returns Combined insights with a computed summary.
+ */
 async function getCombined(args: {
   url: string;
   strategy?: PsiStrategy;
@@ -380,12 +442,24 @@ async function getCombined(args: {
 export const schema = buildSchema(schemaSource);
 
 export const rootValue = {
+  /**
+   * Root resolver for website-scoped insights.
+   *
+   * @param params Website resolver input.
+   * @returns Website context object with nested resolvers.
+   */
   website: ({ url }: { url: string }) => {
     const origin = parseOrigin(url);
 
     return {
       inputUrl: url,
       origin,
+      /**
+       * Resolves PageSpeed data for the current website context.
+       *
+       * @param args PageSpeed options.
+       * @returns PageSpeed insights for the website URL.
+       */
       pagespeed: (args: {
         strategy?: PsiStrategy;
         categories?: PsiCategory[];
@@ -395,12 +469,24 @@ export const rootValue = {
           strategy: args.strategy,
           categories: args.categories,
         }),
+      /**
+       * Resolves CrUX history for the current website context.
+       *
+       * @param args CrUX options.
+       * @returns CrUX history for the website origin.
+       */
       crux: (args: { formFactor?: FormFactor; metrics?: string[] }) =>
         getCruxHistory({
           origin,
           formFactor: args.formFactor,
           metrics: args.metrics,
         }),
+      /**
+       * Resolves combined PageSpeed and CrUX insights for the website.
+       *
+       * @param args Combined query options.
+       * @returns Combined insights and computed summary.
+       */
       combined: (args: {
         strategy?: PsiStrategy;
         categories?: PsiCategory[];
@@ -417,6 +503,12 @@ export const rootValue = {
     };
   },
 
+  /**
+   * Root resolver for direct PageSpeed lookups.
+   *
+   * @param params PageSpeed resolver input.
+   * @returns PageSpeed insights for the requested URL.
+   */
   pagespeed: ({
     url,
     strategy,
@@ -427,6 +519,12 @@ export const rootValue = {
     categories?: PsiCategory[];
   }) => getPageSpeed({ url, strategy, categories }),
 
+  /**
+   * Root resolver for direct CrUX lookups.
+   *
+   * @param params CrUX resolver input.
+   * @returns CrUX history for the requested origin.
+   */
   crux: ({
     origin,
     formFactor,
@@ -442,6 +540,12 @@ export const rootValue = {
       metrics,
     }),
 
+  /**
+   * Root resolver for direct combined lookups.
+   *
+   * @param params Combined resolver input.
+   * @returns Combined insights for the requested URL.
+   */
   combined: ({
     url,
     strategy,
