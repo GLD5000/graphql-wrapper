@@ -15,41 +15,41 @@ This project provides a GraphQL API wrapper for aggregating and exposing web per
 ## Features
 
 - Exposes a `/api/graphql` endpoint for querying web performance data.
-- Aggregates data from multiple sources (e.g., PageSpeed, CrUX).
+- Fetches data from multiple sources (e.g., PageSpeed Insights, Chrome UX Report).
 - Supports parameterized queries (e.g., URL, strategy, form factor).
 - Uses GraphQL enums for strict value constraints (e.g., `strategy`, `formFactor`).
-- Returns structured results with summary and detailed metrics.
+- Returns structured results with detailed metrics.
 
 ## GraphQL Schema
 
-- **Query:** `combined(url: String!, strategy: StrategyEnum, formFactor: FormFactorEnum): CombinedResult`
+- **Queries:**
+  - `website(url: String!)`: Get WebsiteInsights for a URL
+  - `pagespeed(url: String!, strategy: PsiStrategy, categories: [PsiCategory])`: Get PageSpeed data
+  - `crux(origin: String!, formFactor: FormFactor, metrics: [String])`: Get CrUX history data
 - **Types:**
-  - `CombinedResult`: Contains `summary`, `pagespeed`, and `crux` fields.
-  - `Summary`: Aggregated performance metrics.
-  - `PageSpeed`: Raw PageSpeed metrics.
-  - `CrUX`: Chrome User Experience Report metrics.
+  - `WebsiteInsights`: Contains `pagespeed` and `crux` resolvers.
+  - `PageSpeedResult`: Raw PageSpeed metrics from Google PageSpeed Insights.
+  - `CruxHistoryResult`: Chrome User Experience Report metrics.
 - **Enums:**
-  - `StrategyEnum`: e.g., `MOBILE`, `DESKTOP`
-  - `FormFactorEnum`: e.g., `PHONE`, `TABLET`, `DESKTOP`
+  - `PsiStrategy`: e.g., `MOBILE`, `DESKTOP`
+  - `FormFactor`: e.g., `PHONE`, `TABLET`, `DESKTOP`, `ALL`
+  - `PsiCategory`: e.g., `PERFORMANCE`, `ACCESSIBILITY`, `BEST_PRACTICES`, `SEO`, `PWA`
 
 ## Example Query
 
 ```
-query Combined($url: String!) {
-  combined(url: $url, strategy: MOBILE, formFactor: PHONE) {
-    summary {
-      origin
+query Website($url: String!) {
+  website(url: $url) {
+    inputUrl
+    origin
+    pagespeed(strategy: MOBILE) {
       performanceScore
-      lcpDeltaMs
-      inpDeltaMs
-      clsDelta
-    }
-    pagespeed {
       lcpMs
       inpMs
       cls
     }
-    crux {
+    crux(formFactor: PHONE) {
+      formFactor
       metrics {
         metric
         p75s
