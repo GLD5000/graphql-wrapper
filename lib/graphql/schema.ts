@@ -76,46 +76,17 @@ const schemaSource = `
     rawJson: String!
   }
 
-  type CombinedSummary {
-    origin: String!
-    strategy: PsiStrategy!
-    formFactor: FormFactor!
-    performanceScore: Float
-    lcpDeltaMs: Float
-    inpDeltaMs: Float
-    clsDelta: Float
-  }
-
-  type CombinedInsights {
-    pagespeed: PageSpeedResult!
-    crux: CruxHistoryResult!
-    summary: CombinedSummary!
-  }
-
   type WebsiteInsights {
     inputUrl: String!
     origin: String!
     pagespeed(strategy: PsiStrategy = MOBILE, categories: [PsiCategory!]): PageSpeedResult!
     crux(formFactor: FormFactor = PHONE, metrics: [String!]): CruxHistoryResult!
-    combined(
-      strategy: PsiStrategy = MOBILE,
-      categories: [PsiCategory!],
-      formFactor: FormFactor = PHONE,
-      metrics: [String!]
-    ): CombinedInsights!
   }
 
   type Query {
     website(url: String!): WebsiteInsights!
     pagespeed(url: String!, strategy: PsiStrategy = MOBILE, categories: [PsiCategory!]): PageSpeedResult!
     crux(origin: String!, formFactor: FormFactor = PHONE, metrics: [String!]): CruxHistoryResult!
-    combined(
-      url: String!,
-      strategy: PsiStrategy = MOBILE,
-      categories: [PsiCategory!],
-      formFactor: FormFactor = PHONE,
-      metrics: [String!]
-    ): CombinedInsights!
   }
 `;
 
@@ -373,72 +344,6 @@ async function getCruxHistory(args: {
   };
 }
 
-/**
- * Runs combined PageSpeed and CrUX queries and derives summary deltas.
- *
- * @param args Combined query options.
- * @returns Combined insights with a computed summary.
- */
-async function getCombined(args: {
-  url: string;
-  strategy?: PsiStrategy;
-  categories?: PsiCategory[];
-  formFactor?: FormFactor;
-  metrics?: string[];
-}) {
-  const origin = parseOrigin(args.url);
-
-  const [pagespeed, crux] = await Promise.all([
-    getPageSpeed({
-      url: args.url,
-      strategy: args.strategy,
-      categories: args.categories,
-    }),
-    getCruxHistory({
-      origin,
-      formFactor: args.formFactor,
-      metrics: args.metrics,
-    }),
-  ]);
-
-  const lcpSeries =
-    crux.metrics.find((item) => item.metric === "largest_contentful_paint")
-      ?.p75s ?? [];
-  const inpSeries =
-    crux.metrics.find((item) => item.metric === "interaction_to_next_paint")
-      ?.p75s ?? [];
-  const clsSeries =
-    crux.metrics.find((item) => item.metric === "cumulative_layout_shift")
-      ?.p75s ?? [];
-
-  const cruxLcp = lastNumber(lcpSeries);
-  const cruxInp = lastNumber(inpSeries);
-  const cruxCls = lastNumber(clsSeries);
-
-  return {
-    pagespeed,
-    crux,
-    summary: {
-      origin,
-      strategy: args.strategy ?? "MOBILE",
-      formFactor: args.formFactor ?? "PHONE",
-      performanceScore: pagespeed.performanceScore,
-      lcpDeltaMs:
-        cruxLcp !== null && pagespeed.lcpMs !== null
-          ? pagespeed.lcpMs - cruxLcp
-          : null,
-      inpDeltaMs:
-        cruxInp !== null && pagespeed.inpMs !== null
-          ? pagespeed.inpMs - cruxInp
-          : null,
-      clsDelta:
-        cruxCls !== null && pagespeed.cls !== null
-          ? pagespeed.cls - cruxCls
-          : null,
-    },
-  };
-}
-
 export const schema = buildSchema(schemaSource);
 
 export const rootValue = {
@@ -481,25 +386,6 @@ export const rootValue = {
           formFactor: args.formFactor,
           metrics: args.metrics,
         }),
-      /**
-       * Resolves combined PageSpeed and CrUX insights for the website.
-       *
-       * @param args Combined query options.
-       * @returns Combined insights and computed summary.
-       */
-      combined: (args: {
-        strategy?: PsiStrategy;
-        categories?: PsiCategory[];
-        formFactor?: FormFactor;
-        metrics?: string[];
-      }) =>
-        getCombined({
-          url,
-          strategy: args.strategy,
-          categories: args.categories,
-          formFactor: args.formFactor,
-          metrics: args.metrics,
-        }),
     };
   },
 
@@ -536,33 +422,6 @@ export const rootValue = {
   }) =>
     getCruxHistory({
       origin: parseOrigin(origin),
-      formFactor,
-      metrics,
-    }),
-
-  /**
-   * Root resolver for direct combined lookups.
-   *
-   * @param params Combined resolver input.
-   * @returns Combined insights for the requested URL.
-   */
-  combined: ({
-    url,
-    strategy,
-    categories,
-    formFactor,
-    metrics,
-  }: {
-    url: string;
-    strategy?: PsiStrategy;
-    categories?: PsiCategory[];
-    formFactor?: FormFactor;
-    metrics?: string[];
-  }) =>
-    getCombined({
-      url,
-      strategy,
-      categories,
       formFactor,
       metrics,
     }),
