@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project provides a GraphQL API wrapper for aggregating and exposing web performance metrics (such as PageSpeed, CrUX, and custom summaries) for a given URL. It is built with Next.js (API routes) and TypeScript.
+This project provides a GraphQL API wrapper for aggregating and exposing web performance metrics for PageSpeed Insights API and CrUX History API for a given URL. It is built with Next.js (API routes) and TypeScript.
 
 ## Architecture
 
