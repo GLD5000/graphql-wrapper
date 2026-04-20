@@ -5,7 +5,6 @@
 - **Website Insights**: The main entry point for querying performance data about a website. You provide a URL, and you can request:
   - PageSpeed results
   - CrUX results
-  - Combined summary and insights
 
 - **PageSpeedResult**: Contains metrics from Google PageSpeed Insights, such as:
   - Performance score
@@ -22,8 +21,6 @@
   - Data for different devices (form factors)
   - Collection periods (date ranges)
 
-- **CombinedInsights**: Aggregates both PageSpeed and CrUX data, plus a summary with key deltas (differences) for LCP, INP, and CLS.
-
 ## Key Types and Fields
 
 - **Enums**:
@@ -35,7 +32,6 @@
   - `website(url: String!)`: Get all insights for a website
   - `pagespeed(url: String!, ...)`: Get only PageSpeed data
   - `crux(origin: String!, ...)`: Get only CrUX data
-  - `combined(url: String!, ...)`: Get combined summary and details
 
 - **Arguments**:
   - You can filter by device type (form factor), strategy (mobile/desktop), and which metrics or categories to include.
@@ -44,8 +40,6 @@
 
 - Query a website's performance for mobile phones:
   - `website(url: "https://example.com") { pagespeed(strategy: MOBILE) { ... } crux(formFactor: PHONE) { ... } }`
-- Get a combined summary for a URL:
-  - `combined(url: "https://example.com", strategy: MOBILE, formFactor: PHONE) { summary { ... } }`
 
 ## Notes
 
